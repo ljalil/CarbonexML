@@ -172,3 +172,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignore all these for now
+*.png
+
+*.pqi
+*.pqo
+*.tsv
+*.pt
+results/*
