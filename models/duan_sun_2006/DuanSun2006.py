@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Dict, Any, Optional, Tuple
+from sklearn.metrics import r2_score
 #from SpanWagner import vaporization_curve
 
 P_triple = 0.51795
@@ -258,64 +259,72 @@ class DuanSun2006:
 
         return range_idx
 
-    def calculate_CO2_mu_liquid(self,P: float, T: float) -> float:
+    def calculate_CO2_mu_liquid(self, P: float, T: float) -> float:
         """
         calculates the chemical potential (mu) of CO2 in the liquid phase
         """
+        # convert pressure from MPa to bar
+        P_bar = P * 10
         return (
             self.CO2_MU_LIQUID_COEFFS[0]
             + self.CO2_MU_LIQUID_COEFFS[1] * T
             + self.CO2_MU_LIQUID_COEFFS[2] / T
             + self.CO2_MU_LIQUID_COEFFS[3] * T**2
             + self.CO2_MU_LIQUID_COEFFS[4] / (630 - T)
-            + self.CO2_MU_LIQUID_COEFFS[5] * P
-            + self.CO2_MU_LIQUID_COEFFS[6] * P * np.log(T)
-            + self.CO2_MU_LIQUID_COEFFS[7] * P / T
-            + self.CO2_MU_LIQUID_COEFFS[8] * P / (630 - T)
-            + self.CO2_MU_LIQUID_COEFFS[9] * P**2 / (630 - T) ** 2
-            + self.CO2_MU_LIQUID_COEFFS[10] * T * np.log(P)
+            + self.CO2_MU_LIQUID_COEFFS[5] * P_bar
+            + self.CO2_MU_LIQUID_COEFFS[6] * P_bar * np.log(T)
+            + self.CO2_MU_LIQUID_COEFFS[7] * P_bar / T
+            + self.CO2_MU_LIQUID_COEFFS[8] * P_bar / (630 - T)
+            + self.CO2_MU_LIQUID_COEFFS[9] * P_bar**2 / (630 - T) ** 2
+            + self.CO2_MU_LIQUID_COEFFS[10] * T * np.log(P_bar)
         )
 
     def calculate_lambda_CO2_Na(self, P: float, T: float) -> float:
         """
         Calculate the binary interaction parameter lambda for CO2 and Na+.
         """
+        # convert pressure from MPa to bar
+        P_bar = P * 10
         return (
             self.LAMBDA_CO2_NA[0]
             + self.LAMBDA_CO2_NA[1] * T
             + self.LAMBDA_CO2_NA[2] / T
             + self.LAMBDA_CO2_NA[3] * T**2
             + self.LAMBDA_CO2_NA[4] / (630 - T)
-            + self.LAMBDA_CO2_NA[5] * P
-            + self.LAMBDA_CO2_NA[6] * P * np.log(T)
-            + self.LAMBDA_CO2_NA[7] * P / T
-            + self.LAMBDA_CO2_NA[8] * P / (630 - T)
-            + self.LAMBDA_CO2_NA[9] * P**2 / (630 - T) ** 2
-            + self.LAMBDA_CO2_NA[10] * T * np.log(P)
+            + self.LAMBDA_CO2_NA[5] * P_bar
+            + self.LAMBDA_CO2_NA[6] * P_bar * np.log(T)
+            + self.LAMBDA_CO2_NA[7] * P_bar / T
+            + self.LAMBDA_CO2_NA[8] * P_bar / (630 - T)
+            + self.LAMBDA_CO2_NA[9] * P_bar**2 / (630 - T) ** 2
+            + self.LAMBDA_CO2_NA[10] * T * np.log(P_bar)
         )
 
     def calculate_zeta_CO2_Na_Cl(self, P: float, T: float) -> float:
         """
         Calculate the ternary interaction parameter zeta for CO2, Na+, and Cl-.
         """
+        # convert pressure from MPa to bar
+        P_bar = P * 10
         return (
             self.ZETA_CO2_NA_CL[0]
             + self.ZETA_CO2_NA_CL[1] * T
             + self.ZETA_CO2_NA_CL[2] / T
             + self.ZETA_CO2_NA_CL[3] * T**2
             + self.ZETA_CO2_NA_CL[4] / (630 - T)
-            + self.ZETA_CO2_NA_CL[5] * P
-            + self.ZETA_CO2_NA_CL[6] * P * np.log(T)
-            + self.ZETA_CO2_NA_CL[7] * P / T
-            + self.ZETA_CO2_NA_CL[8] * P / (630 - T)
-            + self.ZETA_CO2_NA_CL[9] * P**2 / (630 - T) ** 2
-            + self.ZETA_CO2_NA_CL[10] * T * np.log(P)
+            + self.ZETA_CO2_NA_CL[5] * P_bar
+            + self.ZETA_CO2_NA_CL[6] * P_bar * np.log(T)
+            + self.ZETA_CO2_NA_CL[7] * P_bar / T
+            + self.ZETA_CO2_NA_CL[8] * P_bar / (630 - T)
+            + self.ZETA_CO2_NA_CL[9] * P_bar**2 / (630 - T) ** 2
+            + self.ZETA_CO2_NA_CL[10] * T * np.log(P_bar)
         )
 
     def calculate_CO2_vap_mol_frac(self, P: float, T: float) -> float:
         """
         Calculate the mole fraction of CO2 in the vapor phase.
         """
+        # convert pressure from MPa to bar
+        P_bar = P * 10
         Tc = 647.29
         Pc = 220.85
         t = (T - Tc) / Tc
@@ -328,7 +337,7 @@ class DuanSun2006:
             + 10.637097 * t**4
         )
 
-        mole_fraction = (P - P_water) / P
+        mole_fraction = (P_bar - P_water) / P_bar
         if mole_fraction < 0:
             return 1e-6
         return mole_fraction
@@ -337,7 +346,9 @@ class DuanSun2006:
         """
         Calculate the fugacity of CO2 using the Duan and Sun (2006) equation of state.
         """
-        range_idx = self._determine_equation_range(T, P)
+        # convert pressure from MPa to bar
+        P_bar = P * 10
+        range_idx = self._determine_equation_range(T, P_bar)
 
         # Extract coefficients
         c1 = self.EOS_PARAMS[range_idx][0]
@@ -358,15 +369,15 @@ class DuanSun2006:
 
         # Calculate fugacity using the provided equation
         try:
-            fugacity = (c1 + 
-                (c2 + c3 * T + c4 / T + c5 / (T - 150.0)) * P + 
-                (c6 + c7 * T + c8 / T) * P**2 + 
-                (c9 + c10 * T + c11 / T) * np.log(P) + 
-                (c12 + c13 * T) / P + 
+            fugacity = (
+                c1 + 
+                (c2 + c3 * T + c4 / T + c5 / (T - 150.0)) * P_bar + 
+                (c6 + c7 * T + c8 / T) * P_bar**2 + 
+                (c9 + c10 * T + c11 / T) * np.log(P_bar) + 
+                (c12 + c13 * T) / P_bar + 
                 c14 / T + 
                 c15 * T**2
             )
-            
             return fugacity
 
         except ZeroDivisionError:
@@ -442,7 +453,8 @@ class DuanSun2006:
         else:
             raise ValueError(f"Model {model} not recognized.")
 
-        P = P * 10  # Convert from MPa to bar
+        # remove global conversion; convert locally for solubility product
+        P_bar = P * 10  # bar equivalent of input MPa
         # Set default empty dictionary if None provided
         if molalities is None:
             molalities = {}
@@ -452,7 +464,7 @@ class DuanSun2006:
 
         try:
             # Calculate CO2 solubility
-            prod = self.calculate_CO2_vap_mol_frac(P, T) * P * self.co2_fugacity(P, T)
+            prod = self.calculate_CO2_vap_mol_frac(P, T) * P_bar * self.co2_fugacity(P, T)
             if prod <= 0:
                 print(f"Negative product: {prod} (T={T} K, P={P/10} MPa, molalities={molalities})")
                 print(f"CO2 fugacity: {self.co2_fugacity(P, T)}")
@@ -469,22 +481,71 @@ class DuanSun2006:
             print("Error calculating CO2 solubility: {e} (T={T} K, P={P} bar)")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and False:
     os.chdir(os.path.dirname(__file__))
     # Load processed experimental data from CSV instead of ODS
     experimental = pd.read_csv(
         "/home/jalil/OneDrive/Papers/CCUS/MachineLearning/data/processed/experimental.csv"
     )
+    model = DuanSun2006() # Instantiate model once
 
-    # Create figure with 1x5 subplots for different salt types
-    fig, axes = plt.subplots(1, 5, figsize=(25, 5))
-    
-    # Summary table for AAD%
+    # Summary table for R2 scores
     summary_results = []
     
-    # Define salt types and their corresponding filters
-    salt_types = ["NaCl", "KCl", "CaCl2", "MgCl2", "Na2SO4"]
-    salt_filters = [
+    # For collecting all experimental and calculated values for global R²
+    all_experimental = []
+    all_calculated = []
+
+    # Pure water predictions and R² calculation
+    water_data = experimental[(experimental["Na+"] == 0) & (experimental["K+"] == 0) & (experimental["Mg+2"] == 0) & (experimental["Ca+2"] == 0) & (experimental["SO4-2"] == 0) & (experimental["Cl-"] == 0)]
+    r2_water_value = "No data"
+    water_df_for_plot = pd.DataFrame()
+
+    if len(water_data) > 0:
+        water_results = []
+        for _, row in water_data.iterrows():
+            sol = model.calculate_CO2_solubility(row['Pressure (MPa)'], row['Temperature (K)'], {})
+            water_results.append({
+                'Experimental CO2 (mol/kg)': row['Dissolved CO2 (mol/kg)'],
+                'Calculated CO2 (mol/kg)': sol
+            })
+        water_df_for_plot = pd.DataFrame(water_results)
+        if not water_df_for_plot.empty:
+            r2_water_value = r2_score(water_df_for_plot['Experimental CO2 (mol/kg)'], water_df_for_plot['Calculated CO2 (mol/kg)'])
+            print(f"Pure water R²: {r2_water_value:.4f} (n={len(water_df_for_plot)})")
+            summary_results.append({"Salt": "Pure Water", "R²": f"{r2_water_value:.4f}", "Count": len(water_df_for_plot)})
+            all_experimental.extend(water_df_for_plot['Experimental CO2 (mol/kg)'].values)
+            all_calculated.extend(water_df_for_plot['Calculated CO2 (mol/kg)'].values)
+        else:
+            print("Pure water data found, but results DataFrame is empty.")
+            summary_results.append({"Salt": "Pure Water", "R²": "No data", "Count": 0})
+    else:
+        print("No pure water data found.")
+        summary_results.append({"Salt": "Pure Water", "R²": "No data", "Count": 0})
+
+    # Create figure with 2x3 subplots
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10)) # Adjusted for 2x3 layout
+    
+    # Plot pure water data (first subplot)
+    ax_pw = axes[0, 0]
+    if not water_df_for_plot.empty:
+        ax_pw.scatter(water_df_for_plot['Experimental CO2 (mol/kg)'], water_df_for_plot['Calculated CO2 (mol/kg)'], c='blue', label='Pure Water Data')
+        max_val_pw = 0
+        if len(water_df_for_plot['Experimental CO2 (mol/kg)']) > 0:
+             max_val_pw = max(water_df_for_plot['Experimental CO2 (mol/kg)'].max(), water_df_for_plot['Calculated CO2 (mol/kg)'].max())
+        ax_pw.plot([0, max_val_pw], [0, max_val_pw], 'r--')
+        title_r2_pw = f"{r2_water_value:.4f}" if isinstance(r2_water_value, float) else "N/A"
+        ax_pw.set_title(f'Pure Water (R²: {title_r2_pw})')
+        ax_pw.set_xlabel('Experimental CO2 (mol/kg)')
+        ax_pw.set_ylabel('Calculated CO2 (mol/kg)')
+        ax_pw.grid(True)
+    else:
+        ax_pw.text(0.5, 0.5, "No data for Pure Water", ha='center', va='center')
+        ax_pw.set_title("Pure Water")
+    
+    # Define salt types and their corresponding filters for brines
+    salt_types_brine = ["NaCl", "KCl", "CaCl2", "MgCl2", "Na2SO4"]
+    salt_filters_brine = [
         # NaCl: Only Na+ and Cl- present, equal molality
         lambda df: (df["Na+"] > 0) & (df["K+"] == 0) & (df["Mg+2"] == 0) & 
                   (df["Ca+2"] == 0) & (df["SO4-2"] == 0) & (df["Na+"] == df["Cl-"]/1),
@@ -502,82 +563,120 @@ if __name__ == "__main__":
                   (df["Ca+2"] == 0) & (df["Cl-"] == 0) & (abs(df["Na+"] - 2*df["SO4-2"]) < 0.1)
     ]
     
-    # Loop through all salt types
-    for i, (salt, filter_func) in enumerate(zip(salt_types, salt_filters)):
+    # Loop through brine salt types for the remaining subplots
+    for i, (salt, filter_func) in enumerate(zip(salt_types_brine, salt_filters_brine)):
+        ax = axes[(i + 1) // 3, (i + 1) % 3] # Determine current axis
+        
         salt_data = experimental[filter_func(experimental)]
         
         if len(salt_data) == 0:
             print(f"No experimental data found for {salt}")
-            summary_results.append({"Salt": salt, "AAD%": "No data"})
-            axes[i].text(0.5, 0.5, f"No data for {salt}", ha='center', va='center')
-            axes[i].set_title(f"{salt}")
+            summary_results.append({"Salt": salt, "R²": "No data", "Count": 0})
+            ax.text(0.5, 0.5, f"No data for {salt}", ha='center', va='center')
+            ax.set_title(f"{salt}")
             continue
         
         results = []
-        model = DuanSun2006()
+        # model instance is already created
         
         for _, row in salt_data.iterrows():
             pressure = row['Pressure (MPa)']
             temperature = row['Temperature (K)']
             
-            # Extract molalities directly from the dataframe
             molalities = {
-                "Na+": row["Na+"],
-                "K+": row["K+"],
-                "Ca+2": row["Ca+2"],
-                "Mg+2": row["Mg+2"],
-                "SO4-2": row["SO4-2"],
-                "Cl-": row["Cl-"]
+                "Na+": row["Na+"], "K+": row["K+"], "Ca+2": row["Ca+2"],
+                "Mg+2": row["Mg+2"], "SO4-2": row["SO4-2"], "Cl-": row["Cl-"]
             }
             
-            # Determine the salt molality based on the salt type
-            if salt == "NaCl":
-                salt_molality = row["Na+"]
-            elif salt == "KCl":
-                salt_molality = row["K+"]
-            elif salt == "CaCl2":
-                salt_molality = row["Ca+2"]
-            elif salt == "MgCl2":
-                salt_molality = row["Mg+2"]
-            else:  # Na2SO4
-                salt_molality = row["SO4-2"]
+            if salt == "NaCl": salt_molality = row["Na+"]
+            elif salt == "KCl": salt_molality = row["K+"]
+            elif salt == "CaCl2": salt_molality = row["Ca+2"]
+            elif salt == "MgCl2": salt_molality = row["Mg+2"]
+            else: salt_molality = row["SO4-2"] # Na2SO4
             
             calculated_solubility = model.calculate_CO2_solubility(pressure, temperature, molalities)
             
             results.append({
-                'Pressure (MPa)': pressure,
-                'Temperature (K)': temperature,
+                'Pressure (MPa)': pressure, 'Temperature (K)': temperature,
                 f'{salt} (molality)': salt_molality,
                 'Experimental CO2 (mol/kg)': row['Dissolved CO2 (mol/kg)'],
                 'Calculated CO2 (mol/kg)': calculated_solubility,
-                'Difference (%)': (calculated_solubility - row['Dissolved CO2 (mol/kg)']) / row['Dissolved CO2 (mol/kg)'] * 100
             })
 
         results_df = pd.DataFrame(results)
-        # replace infinite differences with NaN and compute AAD% ignoring NaNs
-        diffs = results_df['Difference (%)'].replace([np.inf, -np.inf], np.nan)
-        aad_percent = diffs.abs().mean()
+        r2_salt = "No data"
+        if not results_df.empty and len(results_df['Experimental CO2 (mol/kg)']) > 1 : # R2 score needs at least 2 samples
+             r2_salt = r2_score(results_df['Experimental CO2 (mol/kg)'], results_df['Calculated CO2 (mol/kg)'])
         
-        # Store AAD% for summary
-        summary_results.append({"Salt": salt, "AAD%": f"{aad_percent:.2f}%", "Count": len(results_df)})
+        summary_results.append({"Salt": salt, "R²": f"{r2_salt:.4f}" if isinstance(r2_salt, float) else r2_salt, "Count": len(results_df)})
+        if not results_df.empty:
+            all_experimental.extend(results_df['Experimental CO2 (mol/kg)'].values)
+            all_calculated.extend(results_df['Calculated CO2 (mol/kg)'].values)
         
-        # Plot in the corresponding subplot
-        sc = axes[i].scatter(results_df['Experimental CO2 (mol/kg)'], results_df['Calculated CO2 (mol/kg)'], c=results_df[f'{salt} (molality)'], cmap='viridis')
-        max_val = max(results_df['Experimental CO2 (mol/kg)'].max(), results_df['Calculated CO2 (mol/kg)'].max())
-        axes[i].plot([0, max_val], [0, max_val], 'r--')
-        axes[i].set_xlabel('Experimental CO2 (mol/kg)')
-        axes[i].set_ylabel('Calculated CO2 (mol/kg)')
-        axes[i].set_title(f'{salt} (AAD%: {aad_percent:.2f}%)')
-        axes[i].grid(True)
-        # Add colorbar for molality
-        cbar = fig.colorbar(sc, ax=axes[i])
-        cbar.set_label(f'{salt} molality (mol/kg)')
+        if not results_df.empty:
+            sc = ax.scatter(results_df['Experimental CO2 (mol/kg)'], results_df['Calculated CO2 (mol/kg)'], c=results_df[f'{salt} (molality)'], cmap='viridis')
+            max_val = 0
+            if len(results_df['Experimental CO2 (mol/kg)']) > 0:
+                max_val = max(results_df['Experimental CO2 (mol/kg)'].max(), results_df['Calculated CO2 (mol/kg)'].max())
+            ax.plot([0, max_val], [0, max_val], 'r--')
+            ax.set_xlabel('Experimental CO2 (mol/kg)')
+            ax.set_ylabel('Calculated CO2 (mol/kg)')
+            title_r2_salt = f"{r2_salt:.4f}" if isinstance(r2_salt, float) else "N/A"
+            ax.set_title(f'{salt} (R²: {title_r2_salt})')
+            ax.grid(True)
+            cbar = fig.colorbar(sc, ax=ax)
+            cbar.set_label(f'{salt} molality (mol/kg)')
+        else:
+            ax.text(0.5, 0.5, f"No data for {salt} plot", ha='center', va='center')
+            ax.set_title(f"{salt}")
 
-    # Print summary table of AAD%
-    summary_df = pd.DataFrame(summary_results)
-    print("\nSummary of Average Absolute Deviation (AAD%) for all salts:")
-    print(summary_df.to_string(index=False))
+
+    # Calculate overall R² for all data combined (including pure water)
+    overall_r2 = "No data"
+    if len(all_experimental) > 1 and len(all_experimental) == len(all_calculated): # R2 score needs at least 2 samples
+        overall_r2 = r2_score(all_experimental, all_calculated)
     
-    plt.tight_layout()
-    plt.savefig('co2_solubility_all_salts_comparison.png', dpi=300)
+    # Print summary table of R2 scores
+    summary_df = pd.DataFrame(summary_results)
+    print("\\nSummary of R² scores (including Pure Water):")
+    print(summary_df.to_string(index=False))
+    overall_r2_str = f"{overall_r2:.4f}" if isinstance(overall_r2, float) else "N/A"
+    print(f"\\nOverall R² value for all data: {overall_r2_str}")
+    
+    # Add R² to the figure as a text annotation
+    fig.suptitle(f'CO₂ Solubility: Duan-Sun Model vs. Experimental Data (Overall R² = {overall_r2_str})', fontsize=16)
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to make room for suptitle and labels
+    plt.savefig('co2_solubility_comparison_2x3.png', dpi=300)
     plt.show()
+
+# New script to evaluate DuanSun2006 predictions against experimental test data
+if __name__ == "__main__":
+    import pandas as _pd
+    from sklearn.metrics import r2_score as _r2
+    # Change working directory to script folder
+    os.chdir(os.path.dirname(__file__))
+    # Path to experimental test data
+    exp_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'processed', 'experimental_test.csv')
+    )
+    df = _pd.read_csv(exp_path)
+    model = DuanSun2006()
+    predictions = []
+    # Generate predictions
+    for _, row in df.iterrows():
+        ions = {
+            "Na+": row.get("Na+", 0),
+            "Cl-": row.get("Cl-", 0),
+            "Ca+2": row.get("Ca+2", 0),
+            "Mg+2": row.get("Mg+2", 0),
+            "K+": row.get("K+", 0),
+            "SO4-2": row.get("SO4-2", 0),
+        }
+        pred = model.calculate_CO2_solubility(row['Pressure (MPa)'], row['Temperature (K)'], ions)
+        predictions.append(pred)
+    df['Predicted CO2'] = predictions
+    # Compute R² score
+    mask = df['Predicted CO2'].notnull() & df['Dissolved CO2 (mol/kg)'].notnull()
+    r2 = _r2(df.loc[mask, 'Dissolved CO2 (mol/kg)'], df.loc[mask, 'Predicted CO2'])
+    print(f"DuanSun2006 prediction R² score: {r2:.4f}")

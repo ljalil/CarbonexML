@@ -4,12 +4,14 @@ import subprocess
 import numpy as np
 import pandas as pd
 
-cfg = yaml.safe_load(open("configs/data_params.yaml"))
-database_folder = cfg["phreeqc_database_folder"]
-temp_files_path = cfg["temp_files_path"]
+#cfg = yaml.safe_load(open("configs/data_params.yaml"))
+database_folder = '/usr/local/share/doc/phreeqc/database'
+temp_files_path = '.'
+
+experimental_test = '/home/jalil/OneDrive/Papers/CCUS/CarbonexML/data/processed/experimental_test.csv'
 
 def simulate_single_state(
-    temperature, pressure, ion_moles, database = 'pitzer', pqi_file_path="."
+    temperature, pressure, ion_moles, database = 'phreeqc', pqi_file_path="."
 ):
 
     
@@ -124,33 +126,50 @@ def simulate_varying_pressure(temperature, ion_moles, database, print_code=False
     return simulation[['Pressure (MPa)', 'Dissolved CO2 (mol/kg)']]
 
 if __name__ == "__main__":
+    # Main script to calculate R2 score using experimental_test.csv
+    import pandas as pd
+    from sklearn.metrics import r2_score
+
+    # Load experimental test data
+    df = pd.read_csv(experimental_test)
+    predictions = []
+    # Run PHREEQC simulations for each experimental condition
+    for _, row in df.iterrows():
+        temperature = row['Temperature (K)']
+        pressure = row['Pressure (MPa)']
+        ion_moles = {
+            "Na+": row['Na+'],
+            "Cl-": row['Cl-'],
+            "Ca+2": row['Ca+2'],
+            "Mg+2": row['Mg+2'],
+            "K+": row['K+'],
+            "SO4-2": row['SO4-2'],
+        }
+        pred_co2, _ = simulate_single_state(temperature, pressure, ion_moles)
+        predictions.append(pred_co2)
+    # Compute R^2 score between predicted and experimental dissolved CO2
+    df['Predicted CO2'] = predictions
+    # exclude cases where prediction overshoots experimental by more than 2 mol/kg
+    df['diff'] = df['Predicted CO2'] - df['Dissolved CO2 (mol/kg)']
+    df_filtered = df[df['diff'] <= 2]
+    # compute R2 on filtered data
+    r2 = r2_score(df_filtered['Dissolved CO2 (mol/kg)'], df_filtered['Predicted CO2'])
+    print(f"Excluded {len(df) - len(df_filtered)} cases where pred-act > 2")
+    print(df_filtered[['Dissolved CO2 (mol/kg)', 'Predicted CO2']])
+    print(f"PHREEQC prediction R2 score: {r2:.4f}")
+
+    # Plot predicted vs actual dissolved CO2 (filtered)
     import matplotlib.pyplot as plt
-    # Example usage
-    temperature = 298.15  # Temperature in Kelvin
-    pressure = 1.0  # Pressure in MPa
-    ion_moles = {
-        "Na+": 0.1,
-        "Cl-": 0.1,
-        "Ca+2": 0.01,
-        "Mg+2": 0.01,
-        "K+": 0.01,
-        "SO4-2": 0.01,
-    }
-
-    results = simulate_varying_pressure(temperature, ion_moles, database='pitzer')
-    plt.plot(results["Pressure (MPa)"], results["Dissolved CO2 (mol/kg)"])
-
-    pressures = np.linspace(1, 100, 5)
-    results = []
-    for pressure in pressures:
-        result = simulate_single_state(temperature, pressure, ion_moles)
-        results.append(result[0])
-
-    plt.scatter(pressures, results, color='red', label='Single State Simulation')
-
-    
-    plt.xlabel("Pressure (MPa)")
-    plt.ylabel("Dissolved CO2 (mol/kg)")
-    plt.title("Dissolved CO2 vs Pressure")
-    plt.grid()
+    plt.figure()
+    plt.scatter(df_filtered['Dissolved CO2 (mol/kg)'], df_filtered['Predicted CO2'], color='blue', label='Filtered Data')
+    # plot unity line
+    # compute axis limits on filtered data
+    min_val = min(df_filtered['Dissolved CO2 (mol/kg)'].min(), df_filtered['Predicted CO2'].min())
+    max_val = max(df_filtered['Dissolved CO2 (mol/kg)'].max(), df_filtered['Predicted CO2'].max())
+    plt.plot([min_val, max_val], [min_val, max_val], 'k--', label='Ideal')
+    plt.xlabel('Experimental Dissolved CO2 (mol/kg)')
+    plt.ylabel('Predicted Dissolved CO2 (mol/kg)')
+    plt.title(f'Predicted vs Actual PHREEQC (R² = {r2:.4f})')
+    plt.legend()
+    plt.grid(True)
     plt.show()
